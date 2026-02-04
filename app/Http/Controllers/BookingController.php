@@ -157,8 +157,15 @@ class BookingController extends Controller
         if (Auth::user()->isCustomer() && $booking->user_id !== Auth::id()) {
             abort(403);
         }
+
+        $request = request();
         
-        if (request()->wantsJson()) {
+        // Untuk permintaan dari modal (fetch) kita pakai JSON
+        if (
+            $request->ajax() ||
+            $request->wantsJson() ||
+            $request->query('json') === '1'
+        ) {
             return response()->json(['booking' => $booking]);
         }
         

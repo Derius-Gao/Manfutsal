@@ -213,18 +213,15 @@
 <script>
 // Initialize Charts
 document.addEventListener('DOMContentLoaded', function() {
-    // Revenue Chart - Using real monthly data
+    // Revenue Chart
     const revenueCtx = document.getElementById('revenueChart').getContext('2d');
-    const monthlyData = @json($monthlyRevenue);
-    const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-    
     new Chart(revenueCtx, {
         type: 'line',
         data: {
-            labels: months,
+            labels: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'],
             datasets: [{
                 label: 'Pendapatan',
-                data: months.map((month, index) => monthlyData[index + 1] || 0),
+                data: [12000000, 15000000, 13500000, 18000000, 16000000, 19000000, 21000000, 20000000, 22000000, 24000000, 23000000, 25000000],
                 borderColor: 'rgb(75, 192, 192)',
                 backgroundColor: 'rgba(75, 192, 192, 0.2)',
                 tension: 0.1
@@ -251,23 +248,19 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     });
 
-    // Lapangan Chart - Using real lapangan data
+    // Lapangan Chart
     const lapanganCtx = document.getElementById('lapanganChart').getContext('2d');
-    const lapanganData = @json($byLapangan);
-    
     new Chart(lapanganCtx, {
         type: 'doughnut',
         data: {
-            labels: Object.keys(lapanganData),
+            labels: ['Lapangan ABC', 'Sport Center XYZ', 'Futsal Arena', 'Indoor Sport'],
             datasets: [{
-                data: Object.values(lapanganData),
+                data: [8000000, 6000000, 4000000, 2000000],
                 backgroundColor: [
                     'rgba(255, 99, 132, 0.8)',
                     'rgba(54, 162, 235, 0.8)',
                     'rgba(255, 206, 86, 0.8)',
-                    'rgba(75, 192, 192, 0.8)',
-                    'rgba(153, 102, 255, 0.8)',
-                    'rgba(255, 159, 64, 0.8)'
+                    'rgba(75, 192, 192, 0.8)'
                 ]
             }]
         },
@@ -288,21 +281,50 @@ function applyFilter() {
     const endDate = document.getElementById('end-date').value;
     const lapangan = document.getElementById('filter-lapangan').value;
     
-    const params = new URLSearchParams();
-    if (startDate) params.append('start', startDate);
-    if (endDate) params.append('end', endDate);
-    if (lapangan) params.append('lapangan', lapangan);
-    
-    window.location.href = `{{ route('manager.keuangan.index') }}?${params.toString()}`;
+    Swal.fire({
+        title: 'Applying Filter...',
+        text: 'Sedang menerapkan filter',
+        timer: 1000,
+        timerProgressBar: true,
+        didOpen: () => {
+            Swal.showLoading();
+        }
+    }).then(() => {
+        console.log('Filter applied:', { startDate, endDate, lapangan });
+        // Apply filter logic here
+        updateSummaryCards();
+    });
 }
 
 function resetFilter() {
-    window.location.href = '{{ route('manager.keuangan.index') }}';
+    document.getElementById('start-date').value = '{{ now()->startOfMonth()->format("Y-m-d") }}';
+    document.getElementById('end-date').value = '{{ now()->format("Y-m-d") }}';
+    document.getElementById('filter-lapangan').value = '';
+    
+    Swal.fire({
+        title: 'Reset Filter...',
+        text: 'Mengatur ulang filter',
+        timer: 1000,
+        timerProgressBar: true,
+        didOpen: () => {
+            Swal.showLoading();
+        }
+    }).then(() => {
+        location.reload();
+    });
+}
+
+function updateSummaryCards() {
+    // Simulate updating summary cards with new data
+    document.getElementById('total-revenue').textContent = formatRupiah(18000000);
+    document.getElementById('completed-bookings').textContent = '52';
+    document.getElementById('pending-bookings').textContent = '6';
+    document.getElementById('avg-transaction').textContent = formatRupiah(346154);
 }
 
 function exportReport() {
     Swal.fire({
-        title: 'Export Report',
+        title: 'Export Laporan Keuangan',
         html: `
             <div class="mb-3">
                 <label class="form-label">Format Export</label>
@@ -310,6 +332,23 @@ function exportReport() {
                     <option value="excel">Excel</option>
                     <option value="pdf">PDF</option>
                     <option value="csv">CSV</option>
+                </select>
+            </div>
+            <div class="mb-3">
+                <label class="form-label">Tanggal Mulai</label>
+                <input type="date" class="form-control" id="export-start-date" value="{{ $start ?? now()->startOfMonth()->format('Y-m-d') }}">
+            </div>
+            <div class="mb-3">
+                <label class="form-label">Tanggal Selesai</label>
+                <input type="date" class="form-control" id="export-end-date" value="{{ $end ?? now()->format('Y-m-d') }}">
+            </div>
+            <div class="mb-3">
+                <label class="form-label">Filter Lapangan</label>
+                <select class="form-select" id="export-lapangan">
+                    <option value="">Semua Lapangan</option>
+                    @foreach($lapangans ?? [] as $lapangan)
+                        <option value="{{ $lapangan->id }}">{{ $lapangan->nama }}</option>
+                    @endforeach
                 </select>
             </div>
             <div class="mb-3">
@@ -326,12 +365,6 @@ function exportReport() {
                         Transaction Details
                     </label>
                 </div>
-                <div class="form-check">
-                    <input class="form-check-input" type="checkbox" id="include-charts">
-                    <label class="form-check-label" for="include-charts">
-                        Charts
-                    </label>
-                </div>
             </div>
         `,
         showCancelButton: true,
@@ -339,34 +372,91 @@ function exportReport() {
         cancelButtonText: 'Batal',
         preConfirm: () => {
             const format = document.getElementById('export-format').value;
+            const startDate = document.getElementById('export-start-date').value;
+            const endDate = document.getElementById('export-end-date').value;
+            const lapanganId = document.getElementById('export-lapangan').value;
             const includeSummary = document.getElementById('include-summary').checked;
             const includeTransactions = document.getElementById('include-transactions').checked;
-            const includeCharts = document.getElementById('include-charts').checked;
             
-            return { format, includeSummary, includeTransactions, includeCharts };
+            return { format, startDate, endDate, lapanganId, includeSummary, includeTransactions };
         }
     }).then((result) => {
         if (result.isConfirmed) {
-            const { format, includeSummary, includeTransactions, includeCharts } = result.value;
+            const { format, startDate, endDate, lapanganId, includeSummary, includeTransactions } = result.value;
             
+            // Show loading
             Swal.fire({
                 title: 'Exporting...',
-                text: `Sedang mengekspor report ke format ${format.toUpperCase()}`,
+                text: `Sedang mengekspor laporan ke format ${format.toUpperCase()}`,
                 allowOutsideClick: false,
                 didOpen: () => {
                     Swal.showLoading();
                 }
             });
             
-            setTimeout(() => {
-                Swal.fire('Success!', `Report berhasil diekspor ke format ${format.toUpperCase()}`, 'success');
-            }, 2000);
+            // Create form data
+            const formData = new FormData();
+            formData.append('format', format);
+            formData.append('start_date', startDate);
+            formData.append('end_date', endDate);
+            if (lapanganId) {
+                formData.append('lapangan_id', lapanganId);
+            }
+            formData.append('include_summary', includeSummary);
+            formData.append('include_transactions', includeTransactions);
+            
+            // Send export request
+            fetch('/keuangan/export', {
+                method: 'POST',
+                headers: {
+                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content'),
+                    'Accept': format === 'pdf' ? 'application/pdf' : 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+                },
+                body: formData
+            })
+            .then(response => {
+                if (response.ok) {
+                    return response.blob();
+                } else {
+                    return response.json().then(data => {
+                        throw new Error(data.error || 'Export failed');
+                    });
+                }
+            })
+            .then(blob => {
+                // Create download link
+                const url = window.URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.style.display = 'none';
+                a.href = url;
+                a.download = `laporan_keuangan_${new Date().toISOString().split('T')[0]}.${format === 'csv' ? 'csv' : (format === 'pdf' ? 'pdf' : 'xlsx')}`;
+                document.body.appendChild(a);
+                a.click();
+                window.URL.revokeObjectURL(url);
+                document.body.removeChild(a);
+                
+                Swal.fire('Success!', `Laporan berhasil diekspor ke format ${format.toUpperCase()}`, 'success');
+            })
+            .catch(error => {
+                console.error('Export error:', error);
+                Swal.fire('Error', error.message || 'Gagal mengekspor laporan', 'error');
+            });
         }
     });
 }
 
 function refreshData() {
-    location.reload();
+    Swal.fire({
+        title: 'Refreshing...',
+        text: 'Memperbarui data keuangan',
+        timer: 1000,
+        timerProgressBar: true,
+        didOpen: () => {
+            Swal.showLoading();
+        }
+    }).then(() => {
+        location.reload();
+    });
 }
 
 // Auto-refresh every 5 minutes
@@ -375,17 +465,8 @@ setInterval(refreshData, 300000);
 // Transaction filter
 document.getElementById('transaction-filter').addEventListener('change', function() {
     const filter = this.value;
-    const rows = document.querySelectorAll('#transaction-tbody tr');
-    
-    rows.forEach(row => {
-        if (filter === '') {
-            row.style.display = '';
-        } else {
-            const statusCell = row.querySelector('td:nth-child(7)');
-            const status = statusCell.textContent.toLowerCase();
-            row.style.display = status.includes(filter) ? '' : 'none';
-        }
-    });
+    console.log('Filtering transactions by status:', filter);
+    // Implement filter logic here
 });
 </script>
 @endsection

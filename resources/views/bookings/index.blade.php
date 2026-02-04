@@ -266,7 +266,12 @@ function formatRupiah(amount) {
 }
 
 function showDetailModal(bookingId) {
-    fetch(`/bookings/${bookingId}`)
+    const url = `{{ url('/bookings') }}/${bookingId}?json=1`;
+    fetch(url, {
+        headers: {
+            'Accept': 'application/json'
+        }
+    })
         .then(response => response.json())
         .then(data => {
             const booking = data.booking;

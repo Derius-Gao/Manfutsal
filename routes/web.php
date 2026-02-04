@@ -9,6 +9,7 @@ use App\Http\Controllers\PaymentController;
 use App\Http\Controllers\ActivityController;
 use App\Http\Controllers\SettingController;
 use App\Http\Controllers\DashboardController;
+use App\Http\Controllers\AccessController;
 use Illuminate\Support\Facades\Route;
 
 // Guest routes (login/register)
@@ -87,11 +88,19 @@ Route::middleware(['auth', 'role:superadmin'])->group(function () {
     Route::post('/settings', [SettingController::class, 'update'])->name('settings.update');
 });
 
+// Hak Akses - hanya superadmin
+Route::middleware(['auth', 'role:superadmin'])->group(function () {
+    Route::get('/access', [AccessController::class, 'index'])->name('access.index');
+    Route::get('/access/permissions/{userId}', [AccessController::class, 'getUserPermissions'])->name('access.permissions');
+    Route::post('/access/permissions/update', [AccessController::class, 'updatePermissions'])->name('access.permissions.update');
+});
+
 // Keuangan - manager dan admin
 Route::middleware(['auth', 'role:manager|admin'])->group(function () {
     Route::get('/keuangan', [PaymentController::class, 'index'])->name('keuangan.index');
     Route::post('/payments/{id}/verify', [PaymentController::class, 'verify'])->name('payments.verify');
     Route::post('/payments/{id}/reject', [PaymentController::class, 'rejectPayment'])->name('payments.reject');
+    Route::post('/keuangan/export', [ExportController::class, 'exportKeuangan'])->name('keuangan.export');
 });
 
 // Redirect root

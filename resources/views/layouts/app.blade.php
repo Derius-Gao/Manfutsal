@@ -175,8 +175,8 @@ if (!function_exists('getPaymentBadgeHtml')) {
                                     </a>
                                 </li>
                                 <li class="nav-item">
-                                    <a class="nav-link {{ request()->routeIs('users.*') ? 'active' : '' }}" 
-                                       href="{{ route('users.index') }}">
+                                    <a class="nav-link {{ request()->routeIs('access.*') ? 'active' : '' }}" 
+                                       href="{{ route('access.index') }}">
                                         <i class="fas fa-user-shield me-2"></i> Hak Akses
                                     </a>
                                 </li>

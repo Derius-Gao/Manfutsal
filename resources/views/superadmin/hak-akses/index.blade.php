@@ -102,10 +102,10 @@
                     </div>
                 </div>
 
-                <!-- User Role Management -->
+                <!-- User Role Management dengan Checkbox -->
                 <div class="card">
                     <div class="card-header d-flex justify-content-between align-items-center">
-                        <h6>Manajemen Role User</h6>
+                        <h6>Manajemen Hak Akses User</h6>
                         <div>
                             <select class="form-select form-select-sm d-inline-block" id="filter-role" style="width: auto;">
                                 <option value="">Semua Role</option>
@@ -126,138 +126,86 @@
                                     <tr>
                                         <th>User</th>
                                         <th>Role Saat Ini</th>
-                                        <th>Status</th>
-                                        <th>Terdaftar</th>
-                                        <th>Last Login</th>
+                                        <th>Dashboard</th>
+                                        <th>Users</th>
+                                        <th>Lapangans</th>
+                                        <th>Bookings</th>
+                                        <th>Keuangan</th>
+                                        <th>Activities</th>
+                                        <th>Settings</th>
+                                        <th>Access</th>
                                         <th>Aksi</th>
                                     </tr>
                                 </thead>
                                 <tbody id="user-role-tbody">
-                                    <!-- Sample data -->
-                                    <tr>
-                                        <td>
-                                            <div class="d-flex align-items-center">
-                                                <div class="avatar bg-dark text-white rounded-circle d-flex align-items-center justify-content-center me-2" style="width: 32px; height: 32px; font-size: 12px;">
-                                                    SA
+                                    @php
+                                        $availablePages = [
+                                            'dashboard' => 'Dashboard',
+                                            'users' => 'Users', 
+                                            'lapangans' => 'Lapangans',
+                                            'bookings' => 'Bookings',
+                                            'keuangan' => 'Keuangan',
+                                            'activities' => 'Activities',
+                                            'settings' => 'Settings',
+                                            'access' => 'Access'
+                                        ];
+                                    @endphp
+                                    
+                                    @foreach($users as $user)
+                                        @php
+                                            $permissions = isset($userPermissions[$user->id]) ? $userPermissions[$user->id] : [];
+                                        @endphp
+                                        <tr>
+                                            <td>
+                                                <div class="d-flex align-items-center">
+                                                    <div class="avatar bg-{{ $user->role === 'superadmin' ? 'dark' : ($user->role === 'admin' ? 'danger' : ($user->role === 'manager' ? 'warning' : 'info')) }} text-white rounded-circle d-flex align-items-center justify-content-center me-2" style="width: 32px; height: 32px; font-size: 12px;">
+                                                        {{ implode('', array_map(function($n) { return strtoupper($n[0]); }, explode(' ', $user->name))) }}
+                                                    </div>
+                                                    <div>
+                                                        <div>{{ $user->name }}</div>
+                                                        <small class="text-muted">{{ $user->email }}</small>
+                                                    </div>
                                                 </div>
-                                                <div>
-                                                    <div>Super Admin</div>
-                                                    <small class="text-muted">superadmin@manfutsal.com</small>
+                                            </td>
+                                            <td>
+                                                <span class="badge bg-{{ $user->role === 'superadmin' ? 'dark' : ($user->role === 'admin' ? 'danger' : ($user->role === 'manager' ? 'warning' : 'info')) }}">
+                                                    {{ ucfirst($user->role) }}
+                                                </span>
+                                            </td>
+                                            
+                                            {{-- Checkbox permissions --}}
+                                            @foreach($availablePages as $pageKey => $pageTitle)
+                                                <td class="text-center">
+                                                    @if($user->role === 'superadmin')
+                                                        <i class="fas fa-check text-success" title="Auto access (SuperAdmin)"></i>
+                                                    @else
+                                                        <div class="form-check">
+                                                            <input class="form-check-input permission-checkbox" 
+                                                                   type="checkbox" 
+                                                                   data-user-id="{{ $user->id }}"
+                                                                   data-page="{{ $pageKey }}"
+                                                                   id="permission-{{ $user->id }}-{{ $pageKey }}"
+                                                                   {{ isset($permissions[$pageKey]) && $permissions[$pageKey] ? 'checked' : '' }}
+                                                                   onchange="updatePermission({{ $user->id }}, '{{ $pageKey }}', this.checked)">
+                                                        </div>
+                                                    @endif
+                                                </td>
+                                            @endforeach
+                                            
+                                            <td>
+                                                <div class="btn-group btn-group-sm">
+                                                    <button class="btn btn-info" onclick="showUserDetail({{ $user->id }})">
+                                                        <i class="fas fa-eye"></i>
+                                                    </button>
+                                                    @if($user->role !== 'superadmin')
+                                                        <button class="btn btn-success" onclick="saveUserPermissions({{ $user->id }})">
+                                                            <i class="fas fa-save"></i>
+                                                        </button>
+                                                    @endif
                                                 </div>
-                                            </div>
-                                        </td>
-                                        <td>
-                                            <span class="badge bg-dark">Super Admin</span>
-                                        </td>
-                                        <td>
-                                            <span class="badge bg-success">Aktif</span>
-                                        </td>
-                                        <td><small>2024-01-01</small></td>
-                                        <td><small>2 jam yang lalu</small></td>
-                                        <td>
-                                            <div class="btn-group btn-group-sm">
-                                                <button class="btn btn-info" onclick="showUserDetail(1)">
-                                                    <i class="fas fa-eye"></i>
-                                                </button>
-                                                <button class="btn btn-warning" onclick="changeUserRole(1)" disabled>
-                                                    <i class="fas fa-exchange-alt"></i>
-                                                </button>
-                                            </div>
-                                        </td>
-                                    </tr>
-                                    <tr>
-                                        <td>
-                                            <div class="d-flex align-items-center">
-                                                <div class="avatar bg-danger text-white rounded-circle d-flex align-items-center justify-content-center me-2" style="width: 32px; height: 32px; font-size: 12px;">
-                                                    AU
-                                                </div>
-                                                <div>
-                                                    <div>Admin User</div>
-                                                    <small class="text-muted">admin@manfutsal.com</small>
-                                                </div>
-                                            </div>
-                                        </td>
-                                        <td>
-                                            <span class="badge bg-danger">Admin</span>
-                                        </td>
-                                        <td>
-                                            <span class="badge bg-success">Aktif</span>
-                                        </td>
-                                        <td><small>2024-01-01</small></td>
-                                        <td><small>1 hari yang lalu</small></td>
-                                        <td>
-                                            <div class="btn-group btn-group-sm">
-                                                <button class="btn btn-info" onclick="showUserDetail(2)">
-                                                    <i class="fas fa-eye"></i>
-                                                </button>
-                                                <button class="btn btn-warning" onclick="changeUserRole(2)">
-                                                    <i class="fas fa-exchange-alt"></i>
-                                                </button>
-                                            </div>
-                                        </td>
-                                    </tr>
-                                    <tr>
-                                        <td>
-                                            <div class="d-flex align-items-center">
-                                                <div class="avatar bg-warning text-white rounded-circle d-flex align-items-center justify-content-center me-2" style="width: 32px; height: 32px; font-size: 12px;">
-                                                    MU
-                                                </div>
-                                                <div>
-                                                    <div>Manager User</div>
-                                                    <small class="text-muted">manager@manfutsal.com</small>
-                                                </div>
-                                            </div>
-                                        </td>
-                                        <td>
-                                            <span class="badge bg-warning">Manager</span>
-                                        </td>
-                                        <td>
-                                            <span class="badge bg-success">Aktif</span>
-                                        </td>
-                                        <td><small>2024-01-02</small></td>
-                                        <td><small>3 jam yang lalu</small></td>
-                                        <td>
-                                            <div class="btn-group btn-group-sm">
-                                                <button class="btn btn-info" onclick="showUserDetail(3)">
-                                                    <i class="fas fa-eye"></i>
-                                                </button>
-                                                <button class="btn btn-warning" onclick="changeUserRole(3)">
-                                                    <i class="fas fa-exchange-alt"></i>
-                                                </button>
-                                            </div>
-                                        </td>
-                                    </tr>
-                                    <tr>
-                                        <td>
-                                            <div class="d-flex align-items-center">
-                                                <div class="avatar bg-info text-white rounded-circle d-flex align-items-center justify-content-center me-2" style="width: 32px; height: 32px; font-size: 12px;">
-                                                    JD
-                                                </div>
-                                                <div>
-                                                    <div>John Doe</div>
-                                                    <small class="text-muted">john@example.com</small>
-                                                </div>
-                                            </div>
-                                        </td>
-                                        <td>
-                                            <span class="badge bg-info">Customer</span>
-                                        </td>
-                                        <td>
-                                            <span class="badge bg-success">Aktif</span>
-                                        </td>
-                                        <td><small>2024-01-10</small></td>
-                                        <td><small>5 jam yang lalu</small></td>
-                                        <td>
-                                            <div class="btn-group btn-group-sm">
-                                                <button class="btn btn-info" onclick="showUserDetail(4)">
-                                                    <i class="fas fa-eye"></i>
-                                                </button>
-                                                <button class="btn btn-warning" onclick="changeUserRole(4)">
-                                                    <i class="fas fa-exchange-alt"></i>
-                                                </button>
-                                            </div>
-                                        </td>
-                                    </tr>
+                                            </td>
+                                        </tr>
+                                    @endforeach
                                 </tbody>
                             </table>
                         </div>
@@ -479,48 +427,124 @@
 
 @section('scripts')
 <script>
-// Sample user data
-const userData = [
-    {
-        id: 1,
-        name: 'Super Admin',
-        email: 'superadmin@manfutsal.com',
-        role: 'superadmin',
-        is_active: true,
-        created_at: '2024-01-01',
-        last_login: '2 jam yang lalu'
-    },
-    {
-        id: 2,
-        name: 'Admin User',
-        email: 'admin@manfutsal.com',
-        role: 'admin',
-        is_active: true,
-        created_at: '2024-01-01',
-        last_login: '1 hari yang lalu'
-    },
-    {
-        id: 3,
-        name: 'Manager User',
-        email: 'manager@manfutsal.com',
-        role: 'manager',
-        is_active: true,
-        created_at: '2024-01-02',
-        last_login: '3 jam yang lalu'
-    },
-    {
-        id: 4,
-        name: 'John Doe',
-        email: 'john@example.com',
-        role: 'customer',
-        is_active: true,
-        created_at: '2024-01-10',
-        last_login: '5 jam yang lalu'
-    }
-];
+// Store permission changes
+let permissionChanges = {};
 
+// Update permission when checkbox changes
+function updatePermission(userId, pageKey, isChecked) {
+    if (!permissionChanges[userId]) {
+        permissionChanges[userId] = {};
+    }
+    permissionChanges[userId][pageKey] = isChecked;
+    
+    // Show save button for this user
+    const saveBtn = document.querySelector(`button[onclick="saveUserPermissions(${userId})"]`);
+    if (saveBtn) {
+        saveBtn.classList.remove('btn-success');
+        saveBtn.classList.add('btn-warning');
+        saveBtn.innerHTML = '<i class="fas fa-exclamation-triangle"></i>';
+    }
+}
+
+// Save permissions for specific user
+function saveUserPermissions(userId) {
+    if (!permissionChanges[userId] || Object.keys(permissionChanges[userId]).length === 0) {
+        Swal.fire('Info', 'Tidak ada perubahan hak akses', 'info');
+        return;
+    }
+
+    Swal.fire({
+        title: 'Konfirmasi',
+        text: 'Apakah Anda yakin ingin menyimpan perubahan hak akses?',
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonColor: '#3085d6',
+        cancelButtonColor: '#d33',
+        confirmButtonText: 'Ya, Simpan',
+        cancelButtonText: 'Batal'
+    }).then((result) => {
+        if (result.isConfirmed) {
+            const formData = new FormData();
+            formData.append('user_id', userId);
+            formData.append('permissions', JSON.stringify(permissionChanges[userId]));
+
+            fetch('/access/permissions/update', {
+                method: 'POST',
+                headers: {
+                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content'),
+                    'Accept': 'application/json',
+                },
+                body: formData
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    Swal.fire('Success!', 'Hak akses berhasil diperbarui', 'success');
+                    
+                    // Reset save button
+                    const saveBtn = document.querySelector(`button[onclick="saveUserPermissions(${userId})"]`);
+                    if (saveBtn) {
+                        saveBtn.classList.remove('btn-warning');
+                        saveBtn.classList.add('btn-success');
+                        saveBtn.innerHTML = '<i class="fas fa-save"></i>';
+                    }
+                    
+                    // Clear changes for this user
+                    delete permissionChanges[userId];
+                    
+                    // Reload page to show updated permissions
+                    setTimeout(() => location.reload(), 1000);
+                } else {
+                    Swal.fire('Error', data.message || 'Gagal menyimpan perubahan', 'error');
+                }
+            })
+            .catch(error => {
+                console.error('Error saving permissions:', error);
+                Swal.fire('Error', 'Terjadi kesalahan saat menyimpan', 'error');
+            });
+        }
+    });
+}
+
+// Quick select all permissions for a user
+function selectAllPermissions(userId) {
+    document.querySelectorAll(`input[data-user-id="${userId}"]`).forEach(checkbox => {
+        checkbox.checked = true;
+        updatePermission(userId, checkbox.dataset.page, true);
+    });
+}
+
+// Quick deselect all permissions for a user
+function deselectAllPermissions(userId) {
+    document.querySelectorAll(`input[data-user-id="${userId}"]`).forEach(checkbox => {
+        checkbox.checked = false;
+        updatePermission(userId, checkbox.dataset.page, false);
+    });
+}
+
+// Set basic permissions (dashboard + bookings)
+function setBasicPermissions(userId) {
+    document.querySelectorAll(`input[data-user-id="${userId}"]`).forEach(checkbox => {
+        const isBasic = ['dashboard', 'bookings'].includes(checkbox.dataset.page);
+        checkbox.checked = isBasic;
+        updatePermission(userId, checkbox.dataset.page, isBasic);
+    });
+}
+
+// Set manager permissions
+function setManagerPermissions(userId) {
+    document.querySelectorAll(`input[data-user-id="${userId}"]`).forEach(checkbox => {
+        const isManagerAccess = ['dashboard', 'bookings', 'keuangan', 'activities'].includes(checkbox.dataset.page);
+        checkbox.checked = isManagerAccess;
+        updatePermission(userId, checkbox.dataset.page, isManagerAccess);
+    });
+}
+
+// Show user details (keep existing function)
 function showUserDetail(id) {
-    const user = userData.find(u => u.id === id);
+    // Find user data from current page
+    const users = @json($users);
+    const user = users.find(u => u.id === id);
     if (!user) return;
     
     const content = `
@@ -534,9 +558,7 @@ function showUserDetail(id) {
         
         <table class="table table-sm">
             <tr><td>Email</td><td>${user.email}</td></tr>
-            <tr><td>Status</td><td>${user.is_active ? '<span class="badge bg-success">Aktif</span>' : '<span class="badge bg-danger">Tidak Aktif</span>'}</td></tr>
-            <tr><td>Terdaftar</td><td>${user.created_at}</td></tr>
-            <tr><td>Last Login</td><td>${user.last_login}</td></tr>
+            <tr><td>Role</td><td><span class="badge bg-${getRoleBadgeColor(user.role)}">${user.role.toUpperCase()}</span></td></tr>
             <tr><td>Akses</td><td>${getRoleAccess(user.role)}</td></tr>
         </table>
     `;
@@ -545,140 +567,34 @@ function showUserDetail(id) {
     new bootstrap.Modal(document.getElementById('userDetailModal')).show();
 }
 
-function changeUserRole(id) {
-    const user = userData.find(u => u.id === id);
-    if (!user) return;
-    
-    // Prevent changing role of the only superadmin
-    if (user.role === 'superadmin') {
-        Swal.fire('Error', 'Tidak dapat mengubah role Super Admin', 'error');
-        return;
-    }
-    
-    document.getElementById('change_user_id').value = user.id;
-    document.getElementById('selected-user-info').innerHTML = `
-        <div class="d-flex align-items-center">
-            <div class="avatar bg-${getRoleBadgeColor(user.role)} text-white rounded-circle d-flex align-items-center justify-content-center me-2" style="width: 40px; height: 40px; font-size: 14px;">
-                ${user.name.split(' ').map(n => n[0]).join('')}
-            </div>
-            <div>
-                <strong>${user.name}</strong><br>
-                <small class="text-muted">${user.email}</small>
-            </div>
-        </div>
-    `;
-    document.getElementById('current_role').value = user.role.charAt(0).toUpperCase() + user.role.slice(1);
-    
-    // Set available options (exclude current role)
-    const select = document.getElementById('new_role');
-    select.innerHTML = '<option value="">Pilih Role Baru</option>';
-    const roles = ['customer', 'manager', 'admin', 'superadmin'];
-    roles.forEach(role => {
-        if (role !== user.role) {
-            select.innerHTML += `<option value="${role}">${role.charAt(0).toUpperCase() + role.slice(1)}</option>`;
-        }
-    });
-    
-    document.getElementById('role_change_reason').value = '';
-    
-    new bootstrap.Modal(document.getElementById('changeRoleModal')).show();
+function getRoleBadgeColor(role) {
+    const colors = {
+        'superadmin': 'dark',
+        'admin': 'danger', 
+        'manager': 'warning',
+        'customer': 'info'
+    };
+    return colors[role] || 'secondary';
 }
 
-function saveRoleChange() {
-    const form = document.getElementById('changeRoleForm');
-    const formData = new FormData(form);
-    
-    if (!formData.get('new_role') || !formData.get('reason')) {
-        Swal.fire('Error', 'Role baru dan alasan harus diisi', 'error');
-        return;
-    }
-    
-    const userId = formData.get('user_id');
-    const newRole = formData.get('new_role');
-    const reason = formData.get('reason');
-    
-    const user = userData.find(u => u.id == userId);
-    
-    Swal.fire({
-        title: 'Konfirmasi Perubahan Role?',
-        html: `
-            <p>Apakah Anda yakin ingin mengubah role user <strong>${user.name}</strong>?</p>
-            <p>Dari: <span class="badge bg-${getRoleBadgeColor(user.role)}">${user.role.toUpperCase()}</span></p>
-            <p>Menjadi: <span class="badge bg-${getRoleBadgeColor(newRole)}">${newRole.toUpperCase()}</span></p>
-            <p><strong>Alasan:</strong> ${reason}</p>
-        `,
-        icon: 'warning',
-        showCancelButton: true,
-        confirmButtonColor: '#ffc107',
-        cancelButtonColor: '#6c757d',
-        confirmButtonText: 'Ya, Ubah',
-        cancelButtonText: 'Batal'
-    }).then((result) => {
-        if (result.isConfirmed) {
-            processRoleChange(userId, newRole, reason);
-        }
-    });
-}
-
-function processRoleChange(userId, newRole, reason) {
-    Swal.fire({
-        title: 'Changing Role...',
-        text: 'Sedang mengubah role user',
-        allowOutsideClick: false,
-        didOpen: () => {
-            Swal.showLoading();
-        }
-    });
-    
-    setTimeout(() => {
-        Swal.fire('Success!', 'Role user berhasil diubah', 'success').then(() => {
-            bootstrap.Modal.getInstance(document.getElementById('changeRoleModal')).hide();
-            addRoleChangeHistory(userId, newRole, reason);
-            updateRoleStats();
-            location.reload();
-        });
-    }, 1500);
-}
-
-function addRoleChangeHistory(userId, newRole, reason) {
-    const user = userData.find(u => u.id == userId);
-    console.log('Role change history added:', {
-        user: user.name,
-        oldRole: user.role,
-        newRole: newRole,
-        reason: reason,
-        timestamp: new Date()
-    });
-}
-
-function updateRoleStats() {
-    // Simulate updating role statistics
-    document.getElementById('superadmin-count').textContent = '1';
-    document.getElementById('admin-count').textContent = '4';
-    document.getElementById('manager-count').textContent = '4';
-    document.getElementById('customer-count').textContent = '40';
+function getRoleAccess(role) {
+    const accesses = {
+        'superadmin': 'Full access to all features',
+        'admin': 'Access to user management, lapangans, bookings, keuangan',
+        'manager': 'Access to bookings, keuangan, activities',
+        'customer': 'Access to bookings and personal data'
+    };
+    return accesses[role] || 'Limited access';
 }
 
 function applyFilter() {
     const role = document.getElementById('filter-role').value;
     console.log('Filtering by role:', role);
-    
-    Swal.fire({
-        title: 'Filtering...',
-        text: 'Sedang memfilter user',
-        timer: 1000,
-        timerProgressBar: true,
-        didOpen: () => {
-            Swal.showLoading();
-        }
-    }).then(() => {
-        console.log('Filter applied:', role);
-    });
 }
 
 function exportRoles() {
     Swal.fire({
-        title: 'Export Role Data',
+        title: 'Export Hak Akses',
         html: `
             <div class="mb-3">
                 <label class="form-label">Format Export</label>
@@ -697,37 +613,23 @@ function exportRoles() {
                     </label>
                 </div>
                 <div class="form-check">
-                    <input class="form-check-input" type="checkbox" id="include-role-history" checked>
-                    <label class="form-check-label" for="include-role-history">
-                        Role Change History
-                    </label>
-                </div>
-                <div class="form-check">
-                    <input class="form-check-input" type="checkbox" id="include-access-info" checked>
-                    <label class="form-check-label" for="include-access-info">
-                        Access Information
+                    <input class="form-check-input" type="checkbox" id="include-permissions" checked>
+                    <label class="form-check-label" for="include-permissions">
+                        Permission Details
                     </label>
                 </div>
             </div>
         `,
         showCancelButton: true,
         confirmButtonText: 'Export',
-        cancelButtonText: 'Batal',
-        preConfirm: () => {
-            const format = document.getElementById('export-format').value;
-            const includeUserInfo = document.getElementById('include-user-info').checked;
-            const includeRoleHistory = document.getElementById('include-role-history').checked;
-            const includeAccessInfo = document.getElementById('include-access-info').checked;
-            
-            return { format, includeUserInfo, includeRoleHistory, includeAccessInfo };
-        }
+        cancelButtonText: 'Batal'
     }).then((result) => {
         if (result.isConfirmed) {
-            const { format, includeUserInfo, includeRoleHistory, includeAccessInfo } = result.value;
+            const format = document.getElementById('export-format').value;
             
             Swal.fire({
                 title: 'Exporting...',
-                text: `Sedang mengekspor data role ke format ${format.toUpperCase()}`,
+                text: `Sedang mengekspor data hak akses ke format ${format.toUpperCase()}`,
                 allowOutsideClick: false,
                 didOpen: () => {
                     Swal.showLoading();
@@ -735,51 +637,22 @@ function exportRoles() {
             });
             
             setTimeout(() => {
-                Swal.fire('Success!', `Data role berhasil diekspor ke format ${format.toUpperCase()}`, 'success');
+                Swal.fire('Success!', `Data hak akses berhasil diekspor`, 'success');
             }, 2000);
         }
     });
 }
 
 function refreshData() {
-    Swal.fire({
-        title: 'Refreshing...',
-        text: 'Memperbarui data hak akses',
-        timer: 1000,
-        timerProgressBar: true,
-        didOpen: () => {
-            Swal.showLoading();
-        }
-    }).then(() => {
-        location.reload();
-    });
+    location.reload();
 }
 
-// Helper functions
-function getRoleBadgeColor(role) {
-    const colors = {
-        'superadmin': 'dark',
-        'admin': 'danger',
-        'manager': 'warning',
-        'customer': 'info'
-    };
-    return colors[role] || 'secondary';
-}
-
-function getRoleAccess(role) {
-    const access = {
-        'superadmin': 'Semua akses sistem + Hak Akses Management + Web Setting',
-        'admin': 'CRUD Users/Lapangan + Semua Booking + Keuangan',
-        'manager': 'Konfirmasi Booking + Lihat Keuangan + Activity Log',
-        'customer': 'Booking & Riwayat + Upload Pembayaran'
-    };
-    return access[role] || 'Limited access';
-}
-
-// Event listener
-document.getElementById('filter-role').addEventListener('change', applyFilter);
-
-// Auto-refresh every 2 minutes
-setInterval(refreshData, 120000);
+// Warn user if there are unsaved changes
+window.addEventListener('beforeunload', function(e) {
+    if (Object.keys(permissionChanges).length > 0) {
+        e.preventDefault();
+        e.returnValue = '';
+    }
+});
 </script>
 @endsection

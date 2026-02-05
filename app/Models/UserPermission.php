@@ -93,8 +93,16 @@ class UserPermission extends Model
     {
         $availablePages = self::getAvailablePages();
         
+        // Get user to check if superadmin
+        $user = \App\Models\User::find($userId);
+        
         foreach ($availablePages as $pageName => $pageTitle) {
-            $canAccess = isset($permissions[$pageName]) && $permissions[$pageName] === true;
+            // Superadmin always has access, but we still save it for consistency
+            if ($user && $user->role === 'superadmin') {
+                $canAccess = true;
+            } else {
+                $canAccess = isset($permissions[$pageName]) && ($permissions[$pageName] === true || $permissions[$pageName] === 'true' || $permissions[$pageName] === 1);
+            }
             
             self::updateOrCreate(
                 ['user_id' => $userId, 'page_name' => $pageName],

@@ -531,18 +531,89 @@ function exportReport() {
         if (result.isConfirmed) {
             const { format, startDate, endDate, includeSummary, includeTransactions, includeCharts, includePaymentStats } = result.value;
             
+            // Show loading
             Swal.fire({
                 title: 'Exporting...',
-                text: `Sedang mengekspor laporan keuangan ke format ${format.toUpperCase()}`,
+                text: `Sedang mengekspor laporan ke format ${format.toUpperCase()}`,
                 allowOutsideClick: false,
                 didOpen: () => {
                     Swal.showLoading();
                 }
             });
             
-            setTimeout(() => {
-                Swal.fire('Success!', `Laporan keuangan berhasil diekspor ke format ${format.toUpperCase()}`, 'success');
-            }, 2000);
+            // Create form data
+            const formData = new FormData();
+            formData.append('format', format);
+            formData.append('start_date', startDate);
+            formData.append('end_date', endDate);
+            formData.append('include_summary', includeSummary);
+            formData.append('include_transactions', includeTransactions);
+            formData.append('include_charts', includeCharts);
+            
+            // Send export request
+            fetch('/keuangan/export', {
+                method: 'POST',
+                headers: {
+                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content'),
+                    'X-Requested-With': 'XMLHttpRequest',
+                    'Accept': format === 'pdf' ? 'application/pdf' : (format === 'csv' ? 'text/csv' : 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'),
+                },
+                body: formData
+            })
+            .then(response => {
+                // Check content type first
+                const contentType = response.headers.get('content-type');
+                
+                if (response.ok) {
+                    // Check if response is actually a file
+                    if (contentType && (contentType.includes('application/pdf') || 
+                        contentType.includes('application/vnd.openxmlformats') || 
+                        contentType.includes('text/csv') ||
+                        contentType.includes('application/octet-stream'))) {
+                        return response.blob();
+                    } else {
+                        // If not a file, try to parse as JSON error
+                        return response.text().then(text => {
+                            try {
+                                const data = JSON.parse(text);
+                                throw new Error(data.error || 'Export failed');
+                            } catch (e) {
+                                throw new Error('Server mengembalikan response yang tidak valid. Pastikan Anda memiliki akses ke halaman ini.');
+                            }
+                        });
+                    }
+                } else {
+                    // Error response - try to parse as JSON first
+                    return response.text().then(text => {
+                        try {
+                            const data = JSON.parse(text);
+                            throw new Error(data.error || 'Export failed');
+                        } catch (e) {
+                            // If not JSON, it's probably an HTML error page
+                            throw new Error(`Error ${response.status}: ${response.statusText}. Pastikan Anda memiliki akses ke halaman ini.`);
+                        }
+                    });
+                }
+            })
+            .then(blob => {
+                // Create download link
+                const url = window.URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.style.display = 'none';
+                a.href = url;
+                const extension = format === 'csv' ? 'csv' : (format === 'pdf' ? 'pdf' : 'xlsx');
+                a.download = `laporan_keuangan_${new Date().toISOString().split('T')[0]}.${extension}`;
+                document.body.appendChild(a);
+                a.click();
+                window.URL.revokeObjectURL(url);
+                document.body.removeChild(a);
+                
+                Swal.fire('Success!', `Laporan berhasil diekspor ke format ${format.toUpperCase()}`, 'success');
+            })
+            .catch(error => {
+                console.error('Export error:', error);
+                Swal.fire('Error', error.message || 'Gagal mengekspor laporan', 'error');
+            });
         }
     });
 }

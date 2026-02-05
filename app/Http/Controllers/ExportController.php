@@ -14,6 +14,14 @@ class ExportController extends Controller
 {
     public function exportKeuangan(Request $request)
     {
+        // Check authentication
+        if (!\Illuminate\Support\Facades\Auth::check()) {
+            if ($request->expectsJson() || $request->ajax()) {
+                return response()->json(['error' => 'Unauthorized'], 401);
+            }
+            return redirect()->route('login');
+        }
+
         $request->validate([
             'format' => 'required|in:excel,pdf,csv',
             'start_date' => 'nullable|date',
@@ -84,19 +92,36 @@ class ExportController extends Controller
                 case 'csv':
                     return $this->exportToCSV($exportData);
                 default:
-                    return response()->json(['error' => 'Format tidak didukung'], 400);
+                    if ($request->expectsJson() || $request->ajax()) {
+                        return response()->json(['error' => 'Format tidak didukung'], 400);
+                    }
+                    return back()->with('error', 'Format tidak didukung');
             }
         } catch (\Exception $e) {
             \Log::error('Export error: ' . $e->getMessage());
-            return response()->json(['error' => 'Gagal mengekspor data: ' . $e->getMessage()], 500);
+            \Log::error('Export stack trace: ' . $e->getTraceAsString());
+            
+            // Return JSON for AJAX requests
+            if ($request->expectsJson() || $request->ajax()) {
+                return response()->json([
+                    'error' => 'Gagal mengekspor data: ' . $e->getMessage()
+                ], 500);
+            }
+            
+            return back()->with('error', 'Gagal mengekspor data: ' . $e->getMessage());
         }
     }
 
     private function exportToExcel($data)
     {
-        $fileName = 'laporan_keuangan_' . date('Y-m-d_H-i-s') . '.xlsx';
-        
-        return Excel::download(new KeuanganExport($data), $fileName);
+        try {
+            $fileName = 'laporan_keuangan_' . date('Y-m-d_H-i-s') . '.xlsx';
+            
+            return Excel::download(new KeuanganExport($data), $fileName);
+        } catch (\Exception $e) {
+            \Log::error('Excel export error: ' . $e->getMessage());
+            throw $e;
+        }
     }
 
     private function exportToPDF($data)
@@ -116,8 +141,9 @@ class ExportController extends Controller
         $fileName = 'laporan_keuangan_' . date('Y-m-d_H-i-s') . '.csv';
         
         $headers = [
-            'Content-Type' => 'text/csv',
+            'Content-Type' => 'text/csv; charset=UTF-8',
             'Content-Disposition' => 'attachment; filename="' . $fileName . '"',
+            'Content-Encoding' => 'UTF-8',
         ];
 
         $callback = function() use ($data) {
@@ -136,7 +162,7 @@ class ExportController extends Controller
                 'Total',
                 'Status',
                 'Payment'
-            ]);
+            ], ';');
             
             // Data
             foreach ($data['payments'] as $payment) {
@@ -149,7 +175,7 @@ class ExportController extends Controller
                     number_format($payment->jumlah, 0, ',', '.'),
                     $payment->booking->status,
                     ucfirst($payment->status)
-                ]);
+                ], ';');
             }
             
             fclose($file);

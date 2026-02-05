@@ -79,7 +79,7 @@
     @if($includeSummary)
     <div class="summary">
         <div class="summary-box">
-            <h3>{{ formatRupiah($totalIncome) }}</h3>
+            <h3>{{ function_exists('formatRupiah') ? formatRupiah($totalIncome) : 'Rp ' . number_format($totalIncome, 0, ',', '.') }}</h3>
             <p>Total Pendapatan</p>
         </div>
         <div class="summary-box">
@@ -91,7 +91,7 @@
             <p>Total Transaksi</p>
         </div>
         <div class="summary-box">
-            <h3>{{ formatRupiah($avgTransaction) }}</h3>
+            <h3>{{ function_exists('formatRupiah') ? formatRupiah($avgTransaction) : 'Rp ' . number_format($avgTransaction, 0, ',', '.') }}</h3>
             <p>Rata-rata Transaksi</p>
         </div>
     </div>
@@ -119,7 +119,7 @@
                     <td>{{ $payment->booking->user->name ?? 'Unknown' }}</td>
                     <td>{{ $payment->booking->lapangan->nama ?? 'Unknown' }}</td>
                     <td>{{ $payment->booking->jam_mulai->format('H:i') }}-{{ $payment->booking->jam_selesai->format('H:i') }}</td>
-                    <td class="text-right">{{ formatRupiah($payment->jumlah) }}</td>
+                    <td class="text-right">{{ function_exists('formatRupiah') ? formatRupiah($payment->jumlah) : 'Rp ' . number_format($payment->jumlah, 0, ',', '.') }}</td>
                     <td>{{ ucfirst($payment->booking->status) }}</td>
                     <td>{{ ucfirst($payment->status) }}</td>
                 </tr>
@@ -151,7 +151,7 @@
                 @endphp
                 <tr>
                     <td>{{ $lapanganName }}</td>
-                    <td class="text-right">{{ formatRupiah($total) }}</td>
+                    <td class="text-right">{{ function_exists('formatRupiah') ? formatRupiah($total) : 'Rp ' . number_format($total, 0, ',', '.') }}</td>
                     <td class="text-right">{{ $lapanganPayments->count() }}</td>
                 </tr>
             @endforeach
@@ -164,11 +164,3 @@
     </div>
 </body>
 </html>
-
-<?php
-if (!function_exists('formatRupiah')) {
-    function formatRupiah($amount) {
-        return 'Rp ' . number_format($amount, 0, ',', '.');
-    }
-}
-?>

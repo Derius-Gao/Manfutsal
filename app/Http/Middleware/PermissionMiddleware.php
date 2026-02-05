@@ -32,6 +32,12 @@ class PermissionMiddleware
 
         // Check if user has permission to access the page
         if (!UserPermission::hasAccess($user->id, $page)) {
+            // Return JSON for AJAX requests
+            if ($request->expectsJson() || $request->ajax()) {
+                return response()->json([
+                    'error' => 'Anda tidak memiliki akses ke halaman ini'
+                ], 403);
+            }
             return redirect()->route('dashboard')->with('error', 'Anda tidak memiliki akses ke halaman ini');
         }
 

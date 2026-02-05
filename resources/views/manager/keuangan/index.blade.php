@@ -410,16 +410,43 @@ function exportReport() {
                 method: 'POST',
                 headers: {
                     'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content'),
-                    'Accept': format === 'pdf' ? 'application/pdf' : 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+                    'X-Requested-With': 'XMLHttpRequest',
+                    'Accept': format === 'pdf' ? 'application/pdf' : (format === 'csv' ? 'text/csv' : 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'),
                 },
                 body: formData
             })
             .then(response => {
+                // Check content type first
+                const contentType = response.headers.get('content-type');
+                
                 if (response.ok) {
-                    return response.blob();
+                    // Check if response is actually a file
+                    if (contentType && (contentType.includes('application/pdf') || 
+                        contentType.includes('application/vnd.openxmlformats') || 
+                        contentType.includes('text/csv') ||
+                        contentType.includes('application/octet-stream'))) {
+                        return response.blob();
+                    } else {
+                        // If not a file, try to parse as JSON error
+                        return response.text().then(text => {
+                            try {
+                                const data = JSON.parse(text);
+                                throw new Error(data.error || 'Export failed');
+                            } catch (e) {
+                                throw new Error('Server mengembalikan response yang tidak valid. Pastikan Anda memiliki akses ke halaman ini.');
+                            }
+                        });
+                    }
                 } else {
-                    return response.json().then(data => {
-                        throw new Error(data.error || 'Export failed');
+                    // Error response - try to parse as JSON first
+                    return response.text().then(text => {
+                        try {
+                            const data = JSON.parse(text);
+                            throw new Error(data.error || 'Export failed');
+                        } catch (e) {
+                            // If not JSON, it's probably an HTML error page
+                            throw new Error(`Error ${response.status}: ${response.statusText}. Pastikan Anda memiliki akses ke halaman ini.`);
+                        }
                     });
                 }
             })

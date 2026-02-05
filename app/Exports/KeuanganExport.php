@@ -74,11 +74,18 @@ class KeuanganExport implements FromView, WithTitle, WithEvents, WithStyles
                         'alignment' => ['horizontal' => 'center']
                     ]);
                     
-                    // Summary data
+                    // Summary data - use helper function if exists, otherwise format manually
+                    $formatRupiah = function($amount) {
+                        if (function_exists('formatRupiah')) {
+                            return formatRupiah($amount);
+                        }
+                        return 'Rp ' . number_format($amount, 0, ',', '.');
+                    };
+                    
                     $summaryData = [
-                        ['Total Pendapatan', '', '', '', '', formatRupiah($this->data['totalIncome']), '', ''],
+                        ['Total Pendapatan', '', '', '', '', $formatRupiah($this->data['totalIncome']), '', ''],
                         ['Booking Selesai', '', '', '', '', $this->data['completedBookings'], '', ''],
-                        ['Rata-rata Transaksi', '', '', '', '', formatRupiah($this->data['avgTransaction']), '', ''],
+                        ['Rata-rata Transaksi', '', '', '', '', $formatRupiah($this->data['avgTransaction']), '', ''],
                     ];
                     
                     $row = $summaryStartRow + 1;
@@ -89,11 +96,5 @@ class KeuanganExport implements FromView, WithTitle, WithEvents, WithStyles
                 }
             },
         ];
-    }
-}
-
-if (!function_exists('formatRupiah')) {
-    function formatRupiah($amount) {
-        return 'Rp ' . number_format($amount, 0, ',', '.');
     }
 }

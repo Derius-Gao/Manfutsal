@@ -3,15 +3,89 @@
 @section('title', 'Hak Akses')
 
 @section('content')
-<div class="row">
-    <div class="col-md-12">
+<style>
+    /* Fix layout untuk tidak tertimpa sidebar */
+    .permissions-container {
+        width: calc(100% - 200px); /* Subtract sidebar width */
+        max-width: 100%;
+        margin-left: 200px; /* Match your sidebar width */
+        padding: 20px;
+    }
+    
+    .permissions-table-wrapper {
+        overflow-x: auto;
+        width: 100%;
+        margin-top: 20px;
+        -webkit-overflow-scrolling: touch;
+    }
+    
+    .permissions-table {
+        width: 100%;
+        min-width: 1000px;
+        margin-bottom: 0;
+    }
+    
+    .permissions-table th,
+    .permissions-table td {
+        padding: 12px 8px;
+        vertical-align: middle;
+        border: 1px solid #dee2e6;
+    }
+    
+    .permissions-table th {
+        background-color: #f8f9fa;
+        font-weight: 600;
+        position: sticky;
+        top: 0;
+        z-index: 10;
+        white-space: nowrap;
+    }
+    
+    .permissions-table td {
+        white-space: nowrap;
+    }
+    
+    .permission-checkbox {
+        cursor: pointer;
+        width: 18px;
+        height: 18px;
+    }
+    
+    .card-body {
+        padding: 1.5rem;
+        overflow: visible;
+    }
+    
+    /* Responsive adjustments */
+    @media (max-width: 1200px) {
+        .permissions-table {
+            min-width: 1200px;
+        }
+    }
+    
+    /* For tablets and smaller - collapse sidebar */
+    @media (max-width: 768px) {
+        .permissions-container {
+            width: 100%;
+            margin-left: 0;
+            padding: 15px;
+        }
+    }
+    
+    /* If sidebar is collapsible, adjust when collapsed */
+    .sidebar-collapsed .permissions-container {
+        width: calc(100% - 60px);
+        margin-left: 60px;
+    }
+</style>
+
+<div class="permissions-container">
+    <div class="row">
+        <div class="col-12">
         <div class="card">
             <div class="card-header d-flex justify-content-between align-items-center">
                 <h5><i class="fas fa-shield-alt me-2"></i>Manajemen Hak Akses</h5>
                 <div>
-                    <button class="btn btn-success" onclick="exportRoles()">
-                        <i class="fas fa-download me-2"></i>Export
-                    </button>
                     <button class="btn btn-primary" onclick="refreshData()">
                         <i class="fas fa-sync me-2"></i>Refresh
                     </button>
@@ -120,8 +194,8 @@
                         </div>
                     </div>
                     <div class="card-body">
-                        <div class="table-responsive">
-                            <table class="table table-striped">
+                        <div class="table-responsive permissions-table-wrapper">
+                            <table class="table table-striped table-bordered permissions-table">
                                 <thead>
                                     <tr>
                                         <th>User</th>
@@ -177,9 +251,9 @@
                                             @foreach($availablePages as $pageKey => $pageTitle)
                                                 <td class="text-center">
                                                     @if($user->role === 'superadmin')
-                                                        <i class="fas fa-check text-success" title="Auto access (SuperAdmin)"></i>
+                                                        <i class="fas fa-check-circle text-success" title="Auto access (SuperAdmin) - Selalu memiliki akses"></i>
                                                     @else
-                                                        <div class="form-check">
+                                                        <div class="form-check d-flex justify-content-center">
                                                             <input class="form-check-input permission-checkbox" 
                                                                    type="checkbox" 
                                                                    data-user-id="{{ $user->id }}"
@@ -226,82 +300,10 @@
                     </div>
                 </div>
 
-                <!-- Role Change History -->
-                <div class="card mt-4">
-                    <div class="card-header">
-                        <h6>Riwayat Perubahan Role</h6>
-                    </div>
-                    <div class="card-body">
-                        <div class="timeline" id="role-history">
-                            <!-- Sample history -->
-                            <div class="timeline-item">
-                                <div class="timeline-marker bg-warning">
-                                    <i class="fas fa-exchange-alt"></i>
-                                </div>
-                                <div class="timeline-content">
-                                    <div class="d-flex justify-content-between align-items-start">
-                                        <div>
-                                            <h6 class="mb-1">Role Diubah</h6>
-                                            <p class="text-muted mb-1">
-                                                User <strong>Jane Smith</strong> diubah dari <span class="badge bg-info">Customer</span> menjadi <span class="badge bg-warning">Manager</span>
-                                            </p>
-                                            <small class="text-muted">
-                                                <i class="fas fa-clock me-1"></i>2 hari yang lalu
-                                                <i class="fas fa-user me-1"></i>Super Admin
-                                            </small>
-                                        </div>
-                                        <span class="badge bg-warning">Warning</span>
-                                    </div>
-                                </div>
-                            </div>
-
-                            <div class="timeline-item">
-                                <div class="timeline-marker bg-success">
-                                    <i class="fas fa-user-plus"></i>
-                                </div>
-                                <div class="timeline-content">
-                                    <div class="d-flex justify-content-between align-items-start">
-                                        <div>
-                                            <h6 class="mb-1">Admin Baru Ditambahkan</h6>
-                                            <p class="text-muted mb-1">
-                                                User <strong>Admin User</strong> ditambahkan sebagai <span class="badge bg-danger">Admin</span>
-                                            </p>
-                                            <small class="text-muted">
-                                                <i class="fas fa-clock me-1"></i>1 minggu yang lalu
-                                                <i class="fas fa-user me-1"></i>Super Admin
-                                            </small>
-                                        </div>
-                                        <span class="badge bg-success">Success</span>
-                                    </div>
-                                </div>
-                            </div>
-
-                            <div class="timeline-item">
-                                <div class="timeline-marker bg-danger">
-                                    <i class="fas fa-user-minus"></i>
-                                </div>
-                                <div class="timeline-content">
-                                    <div class="d-flex justify-content-between align-items-start">
-                                        <div>
-                                            <h6 class="mb-1">Role Diturunkan</h6>
-                                            <p class="text-muted mb-1">
-                                                User <strong>Former Admin</strong> diubah dari <span class="badge bg-danger">Admin</span> menjadi <span class="badge bg-info">Customer</span> - Alasan: Pelanggaran kebijakan
-                                            </p>
-                                            <small class="text-muted">
-                                                <i class="fas fa-clock me-1"></i>2 minggu yang lalu
-                                                <i class="fas fa-user me-1"></i>Super Admin
-                                            </small>
-                                        </div>
-                                        <span class="badge bg-danger">Danger</span>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
             </div>
         </div>
     </div>
+</div>
 </div>
 
 <!-- User Detail Modal -->
@@ -448,7 +450,23 @@ function updatePermission(userId, pageKey, isChecked) {
 
 // Save permissions for specific user
 function saveUserPermissions(userId) {
-    if (!permissionChanges[userId] || Object.keys(permissionChanges[userId]).length === 0) {
+    // Get all current checkbox states for this user, not just changes
+    const allPermissions = {};
+    const availablePages = ['dashboard', 'users', 'lapangans', 'bookings', 'keuangan', 'activities', 'settings', 'access'];
+    
+    availablePages.forEach(pageKey => {
+        const checkbox = document.getElementById(`permission-${userId}-${pageKey}`);
+        if (checkbox) {
+            allPermissions[pageKey] = checkbox.checked;
+        }
+    });
+
+    // If no permissions found, use changes
+    if (Object.keys(allPermissions).length === 0 && permissionChanges[userId]) {
+        allPermissions = permissionChanges[userId];
+    }
+
+    if (Object.keys(allPermissions).length === 0) {
         Swal.fire('Info', 'Tidak ada perubahan hak akses', 'info');
         return;
     }
@@ -464,9 +482,18 @@ function saveUserPermissions(userId) {
         cancelButtonText: 'Batal'
     }).then((result) => {
         if (result.isConfirmed) {
+            Swal.fire({
+                title: 'Menyimpan...',
+                text: 'Sedang menyimpan perubahan hak akses',
+                allowOutsideClick: false,
+                didOpen: () => {
+                    Swal.showLoading();
+                }
+            });
+
             const formData = new FormData();
             formData.append('user_id', userId);
-            formData.append('permissions', JSON.stringify(permissionChanges[userId]));
+            formData.append('permissions', JSON.stringify(allPermissions));
 
             fetch('/access/permissions/update', {
                 method: 'POST',
@@ -476,7 +503,19 @@ function saveUserPermissions(userId) {
                 },
                 body: formData
             })
-            .then(response => response.json())
+            .then(response => {
+                if (!response.ok) {
+                    return response.text().then(text => {
+                        try {
+                            const data = JSON.parse(text);
+                            throw new Error(data.message || data.error || 'Gagal menyimpan');
+                        } catch (e) {
+                            throw new Error(text || 'Gagal menyimpan perubahan');
+                        }
+                    });
+                }
+                return response.json();
+            })
             .then(data => {
                 if (data.success) {
                     Swal.fire('Success!', 'Hak akses berhasil diperbarui', 'success');
@@ -500,7 +539,7 @@ function saveUserPermissions(userId) {
             })
             .catch(error => {
                 console.error('Error saving permissions:', error);
-                Swal.fire('Error', 'Terjadi kesalahan saat menyimpan', 'error');
+                Swal.fire('Error', error.message || 'Terjadi kesalahan saat menyimpan', 'error');
             });
         }
     });
@@ -592,56 +631,6 @@ function applyFilter() {
     console.log('Filtering by role:', role);
 }
 
-function exportRoles() {
-    Swal.fire({
-        title: 'Export Hak Akses',
-        html: `
-            <div class="mb-3">
-                <label class="form-label">Format Export</label>
-                <select class="form-select" id="export-format">
-                    <option value="excel">Excel</option>
-                    <option value="csv">CSV</option>
-                    <option value="pdf">PDF</option>
-                </select>
-            </div>
-            <div class="mb-3">
-                <label class="form-label">Include Data</label>
-                <div class="form-check">
-                    <input class="form-check-input" type="checkbox" id="include-user-info" checked>
-                    <label class="form-check-label" for="include-user-info">
-                        User Information
-                    </label>
-                </div>
-                <div class="form-check">
-                    <input class="form-check-input" type="checkbox" id="include-permissions" checked>
-                    <label class="form-check-label" for="include-permissions">
-                        Permission Details
-                    </label>
-                </div>
-            </div>
-        `,
-        showCancelButton: true,
-        confirmButtonText: 'Export',
-        cancelButtonText: 'Batal'
-    }).then((result) => {
-        if (result.isConfirmed) {
-            const format = document.getElementById('export-format').value;
-            
-            Swal.fire({
-                title: 'Exporting...',
-                text: `Sedang mengekspor data hak akses ke format ${format.toUpperCase()}`,
-                allowOutsideClick: false,
-                didOpen: () => {
-                    Swal.showLoading();
-                }
-            });
-            
-            setTimeout(() => {
-                Swal.fire('Success!', `Data hak akses berhasil diekspor`, 'success');
-            }, 2000);
-        }
-    });
-}
 
 function refreshData() {
     location.reload();

@@ -249,7 +249,7 @@ function refreshData() {
 
 function exportReport() {
     Swal.fire({
-        title: 'Export Report',
+        title: 'Export Laporan Keuangan',
         html: `
             <div class="mb-3">
                 <label class="form-label">Format Export</label>
@@ -259,20 +259,157 @@ function exportReport() {
                     <option value="csv">CSV</option>
                 </select>
             </div>
+            <div class="mb-3">
+                <label class="form-label">Tanggal Mulai</label>
+                <input type="date" class="form-control" id="export-start-date" value="{{ now()->startOfMonth()->format('Y-m-d') }}">
+            </div>
+            <div class="mb-3">
+                <label class="form-label">Tanggal Selesai</label>
+                <input type="date" class="form-control" id="export-end-date" value="{{ now()->format('Y-m-d') }}">
+            </div>
+            <div class="mb-3">
+                <label class="form-label">Include Details</label>
+                <div class="form-check">
+                    <input class="form-check-input" type="checkbox" id="include-summary" checked>
+                    <label class="form-check-label" for="include-summary">
+                        Summary Report
+                    </label>
+                </div>
+                <div class="form-check">
+                    <input class="form-check-input" type="checkbox" id="include-transactions" checked>
+                    <label class="form-check-label" for="include-transactions">
+                        Transaction Details
+                    </label>
+                </div>
+            </div>
         `,
         showCancelButton: true,
         confirmButtonText: 'Export',
         cancelButtonText: 'Batal',
         preConfirm: () => {
             const format = document.getElementById('export-format').value;
-            return { format };
+            const startDate = document.getElementById('export-start-date').value;
+            const endDate = document.getElementById('export-end-date').value;
+            const includeSummary = document.getElementById('include-summary').checked;
+            const includeTransactions = document.getElementById('include-transactions').checked;
+            return { format, startDate, endDate, includeSummary, includeTransactions };
         }
     }).then((result) => {
         if (result.isConfirmed) {
-            Swal.fire('Success!', `Report berhasil diekspor ke format ${result.value.format.toUpperCase()}`, 'success');
+            const { format, startDate, endDate, includeSummary, includeTransactions } = result.value;
+            
+            // Show loading
+            Swal.fire({
+                title: 'Exporting...',
+                text: `Sedang mengekspor laporan ke format ${format.toUpperCase()}`,
+                allowOutsideClick: false,
+                didOpen: () => {
+                    Swal.showLoading();
+                }
+            });
+            
+            // Create form data
+            const formData = new FormData();
+            formData.append('format', format);
+            formData.append('start_date', startDate);
+            formData.append('end_date', endDate);
+            formData.append('include_summary', includeSummary ? '1' : '0');
+            formData.append('include_transactions', includeTransactions ? '1' : '0');
+            
+            // Send export request
+            fetch('/keuangan/export', {
+                method: 'POST',
+                headers: {
+                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content'),
+                    'X-Requested-With': 'XMLHttpRequest',
+                },
+                body: formData
+            })
+            .then(response => {
+                console.log('Response status:', response.status);
+                console.log('Response headers:', response.headers);
+                
+                const contentType = response.headers.get('content-type');
+                console.log('Content-Type:', contentType);
+                
+                // Check if response is successful
+                if (!response.ok) {
+                    // Try to get error message from response
+                    return response.text().then(text => {
+                        console.error('Error response text:', text);
+                        try {
+                            const data = JSON.parse(text);
+                            throw new Error(data.error || data.message || 'Export failed');
+                        } catch (e) {
+                            // If not JSON, show the error status
+                            throw new Error(`Server error: ${response.status} ${response.statusText}`);
+                        }
+                    });
+                }
+                
+                // Check if response is a file (blob)
+                if (contentType && (
+                    contentType.includes('application/pdf') || 
+                    contentType.includes('application/vnd.openxmlformats') || 
+                    contentType.includes('application/vnd.ms-excel') ||
+                    contentType.includes('text/csv') ||
+                    contentType.includes('application/octet-stream')
+                )) {
+                    return response.blob();
+                }
+                
+                // If not a file, check if it's JSON
+                if (contentType && contentType.includes('application/json')) {
+                    return response.json().then(data => {
+                        if (data.error) {
+                            throw new Error(data.error);
+                        }
+                        throw new Error('Unexpected JSON response from server');
+                    });
+                }
+                
+                // Unknown content type
+                return response.text().then(text => {
+                    console.error('Unexpected response:', text);
+                    throw new Error('Server mengembalikan response yang tidak valid. Content-Type: ' + contentType);
+                });
+            })
+            .then(blob => {
+                // If we got here, we have a valid file blob
+                console.log('Got blob:', blob);
+                
+                // Create download link
+                const url = window.URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.style.display = 'none';
+                a.href = url;
+                
+                // Set filename based on format
+                const extension = format === 'csv' ? 'csv' : (format === 'pdf' ? 'pdf' : 'xlsx');
+                a.download = `laporan_keuangan_${new Date().toISOString().split('T')[0]}.${extension}`;
+                
+                document.body.appendChild(a);
+                a.click();
+                
+                // Cleanup
+                setTimeout(() => {
+                    window.URL.revokeObjectURL(url);
+                    document.body.removeChild(a);
+                }, 100);
+                
+                Swal.fire('Success!', `Laporan berhasil diekspor ke format ${format.toUpperCase()}`, 'success');
+            })
+            .catch(error => {
+                console.error('Export error:', error);
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Export Gagal',
+                    text: error.message || 'Gagal mengekspor laporan',
+                    footer: 'Silakan cek console browser (F12) untuk detail error'
+                });
+            });
         }
     });
 }
 </script>
 @endsection
-

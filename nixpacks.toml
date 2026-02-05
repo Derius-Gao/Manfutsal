@@ -1,2 +1,0 @@
-[phases.setup]
-aptPkgs = ["php8.2-gd"]

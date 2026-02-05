@@ -1,5 +1,2 @@
 [build]
-builder = "railpack"
-
-[build.config]
-nixpacks.pkgs = ["php82-gd"]
+nixpkgs = ["php82-gd"]
